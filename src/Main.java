@@ -1,6 +1,4 @@
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
@@ -37,30 +35,38 @@ public class Main {
 
 
         //Aufgabe 6 und 7 - Map und SUM
-        Map<String, Integer> sportlersByLand = dbHelper.getSportlerCountByLand();
-
-        for (Map.Entry<String, Integer> entry : sportlersByLand.entrySet()) {
-            System.out.println(entry.getKey() + " -> " + entry.getValue());
-        }
+//        Map<String, Integer> sportlersByLand = dbHelper.getSportlerCountByLand();
+//
+//        for (Map.Entry<String, Integer> entry : sportlersByLand.entrySet()) {
+//            System.out.println(entry.getKey() + " -> " + entry.getValue());
+//        }
 
         //Aufgabe 6
-        System.out.println("Aus der Ukraine gibt es " +
-                dbHelper.getCountForCountry(sportlersByLand, "UKRAINE") + " Sportler");
+//        System.out.println("Aus der Ukraine gibt es " +
+//                dbHelper.getCountForCountry(sportlersByLand, "UKRAINE") + " Sportler");
 
-        ArrayList<String> sportlerMitMeistenSiegen = dbHelper.getSportlerListMitMeistenSiegen();
-        dbHelper.printSportlerListMitMeistenSiegen(sportlerMitMeistenSiegen);
+        ArrayList<String> sportlerSiegen = dbHelper.getSiegerSportlerList();
+        dbHelper.printSportlerListMitMeistenSiegen(sportlerSiegen);
+
+        //Aufgabe 7
+        String date = "2025-06-10";
+        String wettName = "Wien Drachenboot Cup";
+        System.out.println("Durchschnittliche Punkte der Sportler im " + wettName + " am " + date + ": " + dbHelper.getDurchschnittlichePunkte(date));
 
         dbHelper.showWettbewerbByNameAndDatum("Wien Drachenboot Cup", "2025-06-10");
+        //Aufgabe 8
+//        System.out.println("Ups! Es ist ein Fehler passiert – die Schiedsrichter haben die Punkte neu gezählt! " +
+//                "Die Siegerliste sieht jetzt so aus: ");
+//        dbHelper.changePunkteTransaction(8, 5, wettName, date, 75);
+//        dbHelper.showWettbewerbByNameAndDatum("Wien Drachenboot Cup", "2025-06-10");
 
-        System.out.println("Ups! Es ist ein Fehler passiert – die Schiedsrichter haben die Punkte neu gezählt! " +
-                "Die Siegerliste sieht jetzt so aus:");
+        //Transaktion zurückgerollt, weil es keine 7 Sportler am diesen Datum gibt
+        dbHelper.changePunkteTransaction(5, 7, wettName, date, 75);
 
-        dbHelper.showWettbewerbByNameAndDatum("Wien Drachenboot Cup", "2025-06-10");
-
+        dbHelper.printAllTables();
+        dbHelper.infoWettbewerbeTable();
         dbHelper.closeDatabaseConnection();
     }
-
-
 
 
 }

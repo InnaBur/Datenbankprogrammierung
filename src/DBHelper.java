@@ -54,6 +54,7 @@ public class DBHelper {
         }
     }
 
+
     public void createTableWettbewerbe() {
         // String sql = "CREATE TABLE IF NOT EXISTS Wettbewerbe ("
         // language=SQLite
@@ -63,7 +64,7 @@ public class DBHelper {
                 + "SportartId INTEGER NOT NULL, "
                 + "Name TEXT NOT NULL, "
                 + "Datum TEXT NOT NULL, "
-                + "Platzierung INTEGER CHECK(Platzierung >= 1), "
+                + "Punkte INTEGER NOT NULL, "
                 + "FOREIGN KEY (SpId) REFERENCES Sportler(SpId) "
                 + "   ON DELETE CASCADE ON UPDATE CASCADE, "
                 + "FOREIGN KEY (SportartId) REFERENCES Sportarten(SportartId) "
@@ -291,66 +292,58 @@ public class DBHelper {
         return map.getOrDefault(land, 0);
     }
 
-    public String getSportlerMitMeistenSiegen() {
-        Map<Integer, Integer> sumById = new HashMap<>();
-        Map<Integer, String> nameById = new HashMap<>();
-        // language=SQLite
-        String sql = "SELECT s.Vorname, s.Nachname, sa.Bezeichnung AS Sportart,  COUNT(*) AS Siege " +
-                "FROM Wettbewerbe as w " +
-                "JOIN Sportler as s ON w.SpId = s.SpId " +
-                "JOIN Sportarten as sa ON sa.SportartId = s.SportartId " +
-                "WHERE w.Platzierung = 1 " +
-                "GROUP BY s.SpId " +
-                "ORDER BY Siege DESC ";
+//    public String getSportlerMitMeistenPunkte() {
+//        Map<Integer, Integer> sumById = new HashMap<>();
+//        Map<Integer, String> nameById = new HashMap<>();
+//        // language=SQLite
+//        String sql = "SELECT s.Vorname, s.Nachname, sa.Bezeichnung AS Sportart,  COUNT(*) AS Siege " +
+//                "FROM Wettbewerbe as w " +
+//                "JOIN Sportler as s ON w.SpId = s.SpId " +
+//                "JOIN Sportarten as sa ON sa.SportartId = s.SportartId " +
+//                "WHERE w.Platzierung = 1 " +
+//                "GROUP BY s.SpId " +
+//                "ORDER BY Siege DESC ";
+//
+//        try (Statement st = connection.createStatement();
+//             ResultSet rs = st.executeQuery(sql)) {
+//            if (rs.next()) {
+//                return rs.getString("Name") + " mit " + rs.getInt("Siege") + " Siegen";
+//            }
+//        } catch (SQLException e) {
+//            System.out.println("Fehler bei getSportlerMitMeistenSiegen: " + e.getMessage());
+//        }
+//        return "Kein Sieger gefunden.";
+//
+//    }
 
-        try (Statement st = connection.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            if (rs.next()) {
-                return rs.getString("Name") + " mit " + rs.getInt("Siege") + " Siegen";
-            }
-        } catch (SQLException e) {
-            System.out.println("Fehler bei getSportlerMitMeistenSiegen: " + e.getMessage());
-        }
-        return "Kein Sieger gefunden.";
 
-    }
-
-    /**
-     * Ermittelt die Sportler mit den meisten Siegen (Platzierung = 1).
-     * Die Methode führt eine SQL-Abfrage auf der Tabelle Wettbewerbe aus,
-     * zählt die Anzahl der Siege pro Sportler und sortiert nach der höchsten Anzahl.
-     * Falls mehrere Sportler die gleiche Maximalanzahl an Siegen haben,
-     * werden alle zurückgegeben
-     */
-    public ArrayList<String> getSportlerListMitMeistenSiegen() {
+    public ArrayList<String> getSiegerSportlerList() {
         ArrayList<String> sieger = new ArrayList<>();
         // language=SQLite
-        String sql = "SELECT s.Vorname, s.Nachname, sa.Bezeichnung AS Sportart,  COUNT(*) AS Siege " +
-                "FROM Wettbewerbe as w " +
-                "JOIN Sportler as s ON w.SpId = s.SpId " +
-                "JOIN Sportarten as sa ON sa.SportartId = s.SportartId " +
-                "WHERE w.Platzierung = 1 " +
-                "GROUP BY s.SpId " +
-                "ORDER BY Siege DESC ";
+        String sql = "SELECT s.Vorname, s.Nachname, sa.Bezeichnung AS Sportart, " +
+                "       w.Name, w.Datum, w.Punkte, " +
+                "       DENSE_RANK() OVER (PARTITION BY w.Name, w.Datum ORDER BY w.Punkte DESC) AS Platzierung " +
+                "FROM Wettbewerbe w " +
+                "JOIN Sportarten sa ON sa.SportartId = w.SportartId " +
+                "JOIN Sportler s ON s.SpId = w.SpId " +
+                "ORDER BY w.Name, w.Datum, Platzierung";
 
-        try (Statement st = connection.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
 
-            int maxSiege = -1;
-
+            ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                int siege = rs.getInt("Siege");
-                String name = rs.getString("Vorname");
-                String nachname = rs.getString("Nachname");
-                String sportart = rs.getString("Sportart");
+                int platz = rs.getInt("Platzierung");
+                if (platz == 1) {
+                    String vorname = rs.getString("Vorname");
+                    String nachname = rs.getString("Nachname");
+                    String sportart = rs.getString("Sportart");
+                    String wettName = rs.getString("Name");
+                    String datum = rs.getString("Datum");
+                    int punkte = rs.getInt("Punkte");
 
-                if (maxSiege == -1) {
-                    maxSiege = siege;
-                    sieger.add(name + " " + nachname + " (" + sportart + " mit " + siege + " Siegen)");
-                } else if (siege == maxSiege) {
-                    sieger.add(name + " " + nachname + " (" + sportart + ") mit " + siege + " Siegen)");
-                } else {
-                    break;
+                    sieger.add(vorname + " " + nachname + " (" + sportart +
+                            ") hat 1. Platz im Wettbewerb '" + wettName +
+                            "' am " + datum + " mit " + punkte + " Punkten");
                 }
             }
         } catch (SQLException e) {
@@ -363,8 +356,10 @@ public class DBHelper {
         if (sieger.isEmpty()) {
             System.out.println("Kein Sieger gefunden.");
         } else {
+            System.out.println("Sieger List");
+
             for (String s : sieger) {
-                System.out.println("Die meisten Siege hat " + s);
+                System.out.println(s);
             }
         }
     }
@@ -372,11 +367,12 @@ public class DBHelper {
     public void showWettbewerbByNameAndDatum(String name, String datum) {
         // language=SQLite
         String sql = "SELECT s.Vorname, s.Nachname, sa.Bezeichnung as Sportart, " +
-                "w.Name, w.Datum, w.Platzierung " +
+                "w.Name, w.Datum, w.Punkte, " +
+                "DENSE_RANK() OVER (PARTITION BY w.Name, w.Datum ORDER BY w.Punkte DESC) AS Platzierung " +
                 "FROM Wettbewerbe as w JOIN Sportler as s on s.spId = w.SpId " +
                 "JOIN Sportarten as sa ON sa.SportartId = w.SportartId " +
                 "WHERE w.Name = ? AND w.Datum = ? " +
-                "ORDER BY w.Platzierung ";
+                "ORDER BY w.Punkte DESC";
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, name);
@@ -399,59 +395,115 @@ public class DBHelper {
         }
     }
 
-//    public void changePlatzierungTransaction(int spIdVon, int spIdZu, int platzierung) {
-//        int rowsAffected = 0;
-//        try {
-//            connection.setAutoCommit(false);
-//        }
-//        catch(SQLException ex){
-//            System.out.println(ex.getMessage());
-//        }
-//
-//        // language=SQLite
-//        String updateSql = "UPDATE Wettbewerbe " +
-//                "SET Platzierung = Wettbewerbe.Platzierung - ?" +
-//                "WHERE SpId = ?;";
-//        int minusErfolg = 0;
-//        int plusErfolg = 0;
-//        try (PreparedStatement pStmt = connection.prepareStatement(updateSql)) {
-//            pStmt.setInt(1,platzierung);
-//            pStmt.setInt(2,spIdVon);
-//            abbuchErfolgreich = pStmt.executeUpdate();
-//        } catch (SQLException e) {
-//            System.out.println("Fehler beim Ändern eines Mitarbeitendn: " + e.getMessage());
-//        }
-//
-//        String updateGutbuchenSql = "UPDATE Mitarbeitende\n" +
-//                "SET MitarbeiterBonuspunkte = MitarbeiterBonuspunkte + ?" +
-//                "WHERE MAId = ?;";
-//
-//        try (PreparedStatement pStmt = conn.prepareStatement(updateAbbuchenSql)) {
-//            pStmt.setInt(1,bonuspunkte);
-//            pStmt.setInt(2,mitIdZu);
-//            gutBuchenErfolgreich = pStmt.executeUpdate();
-//        } catch (SQLException e) {
-//            System.out.println("Fehler beim Ändern eines Mitarbeitendn: " + e.getMessage());
-//        }
-//
-//        try
-//        {
-//            if (abbuchErfolgreich==1 && gutBuchenErfolgreich==1){
-//                conn.commit();
-//            } else {
-//                conn.rollback();
-//            }
-//        } catch (SQLException e) {
-//            System.out.println("Fehler beim Ändern eines Mitarbeitendn: " + e.getMessage());
-//        }
-//        try {
-//            conn.setAutoCommit(true);
-//        }
-//        catch(SQLException ex){
-//
-//        }
-//
-//    }
+    public double getDurchschnittlichePunkte(String date) {
+        // language=SQLite
+        String sql = "SELECT AVG(Punkte) AS Durchschnitt FROM Wettbewerbe WHERE Datum = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, date);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("Durchschnitt");
+            }
+        } catch (SQLException e) {
+            System.out.println("Fehler bei getDurchschnittlichePunkte: " + e.getMessage());
+        }
+        return 0.0;
+    }
 
+    public void changePunkteTransaction(int spIdVon, int spIdZu, String name, String date, int punkte) {
+        int rowsAffected = 0;
+        try {
+            connection.setAutoCommit(false);
+        } catch (SQLException ex) {
+            System.out.println(ex.getMessage());
+        }
+
+        // language=SQLite
+        String updateSql = "UPDATE Wettbewerbe " +
+                "SET Punkte = Punkte - ?" +
+                "WHERE SpId = ? AND Name = ? AND Datum = ?";
+        int minusErfolg = 0;
+        int plusErfolg = 0;
+        minusErfolg = getErfolg(spIdVon, name, date, punkte, updateSql, minusErfolg);
+
+        // language=SQLite
+        String updateSql2 = "UPDATE Wettbewerbe " +
+                "SET Punkte = Punkte + ?" +
+                "WHERE SpId = ? AND Name = ? AND Datum = ?";
+
+        plusErfolg = getErfolg(spIdZu, name, date, punkte, updateSql2, plusErfolg);
+
+        try {
+            if (minusErfolg == 1 && plusErfolg == 1) {
+                connection.commit();
+                System.out.println("Transaktion erfolgreich ausgeführt.");
+            } else {
+                connection.rollback();
+                System.out.println("Transaktion zurückgerollt.");
+            }
+        } catch (SQLException e) {
+            System.out.println("Fehler beim Ändern Punkte des Sportlers: " + e.getMessage());
+        } finally {
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.out.println("Fehler beim Setzen von AutoCommit: " + e.getMessage());
+            }
+        }
+    }
+
+    private int getErfolg(int spIdVon, String name, String date, int punkte, String updateSql, int erfolg) {
+        try (PreparedStatement pStmt = connection.prepareStatement(updateSql)) {
+            pStmt.setInt(1, punkte);
+            pStmt.setInt(2, spIdVon);
+            pStmt.setString(3, name);
+            pStmt.setString(4, date);
+            erfolg = pStmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Fehler beim Ändern Punkte des Sportlers: " + e.getMessage());
+        }
+        return erfolg;
+    }
+
+    public void printAllTables() {
+        try {
+            DatabaseMetaData meta = connection.getMetaData();
+            ResultSet tables = meta.getTables(null, null, "%", new String[] {"TABLE"});
+            System.out.println("Liste der Tabellen in der Datenbank:");
+            while (tables.next()) {
+                String tableName = tables.getString("TABLE_NAME");
+                System.out.println("- " + tableName);
+            }
+        } catch (SQLException e) {
+            System.out.println("Fehler beim Abrufen der Tabellen: " + e.getMessage());
+        }
+    }
+
+    public void infoWettbewerbeTable() {
+        System.out.println("Info about Wettbewerbe: ");
+        try
+        {
+            // language=SQLite
+            ResultSet rs = connection.createStatement().executeQuery( "SELECT * FROM Wettbewerbe" );
+            ResultSetMetaData meta = rs.getMetaData();
+
+            int numerics = 0;
+
+            for ( int i = 1; i <= meta.getColumnCount(); i++ )
+            {
+                System.out.printf( "%-20s %-20s%n", meta.getColumnLabel( i ),
+                        meta.getColumnTypeName( i ) );
+
+                if ( meta.isSigned( i ) )
+                    numerics++;
+            }
+
+            System.out.println();
+            System.out.println( "Spalten: " + meta.getColumnCount() +
+                    ", Numerisch: " + numerics );
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
 
 }

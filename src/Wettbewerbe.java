@@ -4,7 +4,7 @@ public class Wettbewerbe {
     private int saId;
     private String title;
     private String date;
-    private int platzierung;
+    private int punkte;
 
     public Wettbewerbe(int wettId, int spId, int saId, String title, String date, int platzierung) {
         this.wettId = wettId;
@@ -12,7 +12,7 @@ public class Wettbewerbe {
         this.saId = saId;
         this.title = title;
         this.date = date;
-        this.platzierung = platzierung;
+        this.punkte = platzierung;
     }
 
     public int getWettId() {
@@ -55,12 +55,12 @@ public class Wettbewerbe {
         this.date = date;
     }
 
-    public int getPlatzierung() {
-        return platzierung;
+    public int getPunkte() {
+        return punkte;
     }
 
-    public void setPlatzierung(int platzierung) {
-        this.platzierung = platzierung;
+    public void setPunkte(int punkte) {
+        this.punkte = punkte;
     }
 
     @Override
@@ -71,7 +71,7 @@ public class Wettbewerbe {
                 ", saId=" + saId +
                 ", title='" + title + '\'' +
                 ", date='" + date + '\'' +
-                ", platzierung=" + platzierung +
+                ", platzierung=" + punkte +
                 '}';
     }
 }
