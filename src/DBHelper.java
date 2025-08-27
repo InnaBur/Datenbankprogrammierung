@@ -286,36 +286,10 @@ public class DBHelper {
     }
 
     /* Diese Methode gibt die Anzahl der Sportler aus ausgewählten Land zurück
-
      */
     public int getCountForCountry(Map<String, Integer> map, String land) {
         return map.getOrDefault(land, 0);
     }
-
-//    public String getSportlerMitMeistenPunkte() {
-//        Map<Integer, Integer> sumById = new HashMap<>();
-//        Map<Integer, String> nameById = new HashMap<>();
-//        // language=SQLite
-//        String sql = "SELECT s.Vorname, s.Nachname, sa.Bezeichnung AS Sportart,  COUNT(*) AS Siege " +
-//                "FROM Wettbewerbe as w " +
-//                "JOIN Sportler as s ON w.SpId = s.SpId " +
-//                "JOIN Sportarten as sa ON sa.SportartId = s.SportartId " +
-//                "WHERE w.Platzierung = 1 " +
-//                "GROUP BY s.SpId " +
-//                "ORDER BY Siege DESC ";
-//
-//        try (Statement st = connection.createStatement();
-//             ResultSet rs = st.executeQuery(sql)) {
-//            if (rs.next()) {
-//                return rs.getString("Name") + " mit " + rs.getInt("Siege") + " Siegen";
-//            }
-//        } catch (SQLException e) {
-//            System.out.println("Fehler bei getSportlerMitMeistenSiegen: " + e.getMessage());
-//        }
-//        return "Kein Sieger gefunden.";
-//
-//    }
-
 
     public ArrayList<String> getSiegerSportlerList() {
         ArrayList<String> sieger = new ArrayList<>();
@@ -356,7 +330,7 @@ public class DBHelper {
         if (sieger.isEmpty()) {
             System.out.println("Kein Sieger gefunden.");
         } else {
-            System.out.println("Sieger List");
+            System.out.println("-------Sieger List------");
 
             for (String s : sieger) {
                 System.out.println(s);
@@ -379,13 +353,10 @@ public class DBHelper {
             ps.setString(2, datum);
             ResultSet rs = ps.executeQuery();
 
-            System.out.println("Liste der Sieger in den Wettbewerben " + name + " am " + datum + ": ");
+            System.out.println("------Liste der Sieger in den Wettbewerben " + name + " am " + datum + ": ");
             while (rs.next()) {
                 String vorname = rs.getString("Vorname");
                 String nachname = rs.getString("Nachname");
-                String sportart = rs.getString("Sportart");
-                String wettName = rs.getString("Name");
-                String date = rs.getString("Datum");
                 int platzierung = rs.getInt("Platzierung");
 
                 System.out.println(vorname + " " + nachname + " hat " + platzierung + " Platz");
@@ -468,7 +439,7 @@ public class DBHelper {
     public void printAllTables() {
         try {
             DatabaseMetaData meta = connection.getMetaData();
-            ResultSet tables = meta.getTables(null, null, "%", new String[] {"TABLE"});
+            ResultSet tables = meta.getTables(null, null, "%", new String[]{"TABLE"});
             System.out.println("Liste der Tabellen in der Datenbank:");
             while (tables.next()) {
                 String tableName = tables.getString("TABLE_NAME");
@@ -481,26 +452,24 @@ public class DBHelper {
 
     public void infoWettbewerbeTable() {
         System.out.println("Info about Wettbewerbe: ");
-        try
-        {
+        try {
             // language=SQLite
-            ResultSet rs = connection.createStatement().executeQuery( "SELECT * FROM Wettbewerbe" );
+            ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM Wettbewerbe");
             ResultSetMetaData meta = rs.getMetaData();
 
             int numerics = 0;
 
-            for ( int i = 1; i <= meta.getColumnCount(); i++ )
-            {
-                System.out.printf( "%-20s %-20s%n", meta.getColumnLabel( i ),
-                        meta.getColumnTypeName( i ) );
+            for (int i = 1; i <= meta.getColumnCount(); i++) {
+                System.out.printf("%-20s %-20s%n", meta.getColumnLabel(i),
+                        meta.getColumnTypeName(i));
 
-                if ( meta.isSigned( i ) )
+                if (meta.isSigned(i))
                     numerics++;
             }
 
             System.out.println();
-            System.out.println( "Spalten: " + meta.getColumnCount() +
-                    ", Numerisch: " + numerics );
+            System.out.println("Spalten: " + meta.getColumnCount() +
+                    ", Numerisch: " + numerics);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
